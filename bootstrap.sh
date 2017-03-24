@@ -30,15 +30,7 @@ MYSQL_BIN='/usr/bin/mysql'
 HOSTNAME=${HOSTNAME:-keystone}
 
 KEYSTONE_CONFIG_FILE=/etc/keystone/keystone.conf
-#APACHE_CONF=/etc/apache2/apache2.conf
 MEMCACHE_FILE=/etc/memcached.conf
-
-# Stop apache2 to stop keystone
-#service apache2 stop
-#sleep 5
-
-# Update apache2.conf
-#sed -i "1 i\ServerName $HOSTNAME" $APACHE_CONF
 
 # Set rabbitmq-server
 service rabbitmq-server start
@@ -46,14 +38,11 @@ sleep 5
 rabbitmqctl add_user openstack ${ADMIN_PASSWORD}
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
-# Install MySQL
-sudo debconf-set-selections <<< "mariadb-server mysql-server/root_password password $ADMIN_PASSWORD"
-sudo debconf-set-selections <<< "mariadb-server mysql-server/root_password_again password $ADMIN_PASSWORD" 
+# Add hostname to /etc/hosts
+echo "127.0.0.1 ${HOSTNAME}" >> /etc/hosts
 
-sudo apt-get install -y mariadb-server 
-sudo mv /etc/openstack.cnf /etc/mysql/conf.d
-
-service mysql restart
+# Start mysql
+service mysql start
 sleep 5
 
 # Create database
@@ -62,9 +51,6 @@ CREATE DATABASE	if not exists keystone;
 GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY '$ADMIN_PASSWORD';
 GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY '$ADMIN_PASSWORD';
 eof
-
-# Add hostname to /etc/hosts
-echo "127.0.0.1	${HOSTNAME}" >> /etc/hosts
 
 # Populate the Identity service database
 su -s /bin/sh -c "keystone-manage db_sync" keystone
@@ -78,8 +64,6 @@ ln -s /etc/apache2/sites-available/wsgi-keystone.conf /etc/apache2/sites-enabled
 # Start keystone service 
 uwsgi --http 0.0.0.0:35357 --wsgi-file $(which keystone-wsgi-admin) &
 sleep 5
-#service apache2 start
-#sleep 10 # wait for start
 
 # Initialize keystone
 export OS_TOKEN OS_URL OS_IDENTITY_API_VERSION
