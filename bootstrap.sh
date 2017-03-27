@@ -12,7 +12,7 @@ else
 
     # keystone
     uwsgi --http 0.0.0.0:5000 --wsgi-file $(which keystone-wsgi-public) &
-	sleep 5
+	sleep 3
 	uwsgi --http 0.0.0.0:35357 --wsgi-file $(which keystone-wsgi-admin)
 	exit 0
 fi
@@ -34,7 +34,7 @@ MEMCACHE_FILE=/etc/memcached.conf
 
 # Set rabbitmq-server
 service rabbitmq-server start
-sleep 5
+sleep 3
 rabbitmqctl add_user openstack ${ADMIN_PASSWORD}
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
@@ -58,12 +58,9 @@ su -s /bin/sh -c "keystone-manage db_sync" keystone
 # Initialize fernet keys
 keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
 
-# Enable the Identity service virtual hosts
-ln -s /etc/apache2/sites-available/wsgi-keystone.conf /etc/apache2/sites-enabled
-
 # Start keystone service 
 uwsgi --http 0.0.0.0:35357 --wsgi-file $(which keystone-wsgi-admin) &
-sleep 5
+sleep 3
 
 # Initialize keystone
 export OS_TOKEN OS_URL OS_IDENTITY_API_VERSION
@@ -99,7 +96,7 @@ source ~/adminrc
 
 # reboot services
 pkill uwsgi
-sleep 5
+sleep 3
 uwsgi --http 0.0.0.0:5000 --wsgi-file $(which keystone-wsgi-public) &
-sleep 5
+sleep 3
 uwsgi --http 0.0.0.0:35357 --wsgi-file $(which keystone-wsgi-admin)
