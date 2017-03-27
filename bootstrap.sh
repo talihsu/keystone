@@ -79,7 +79,6 @@ openstack role create admin
 openstack role add --project admin --user admin admin
 openstack project create --domain default --description "Service Project" service
 openstack role create user
-openstack role create heat_stack_owner # for heat
 
 unset OS_TOKEN OS_URL
 
