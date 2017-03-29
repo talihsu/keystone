@@ -5,8 +5,8 @@ MAINTAINER Joe "talihsu@gmail.com"
 RUN set -x \
     && apt-get -y update \
     && apt-get install nano software-properties-common python-pip python-dev -y \
-    && add-apt-repository cloud-archive:newton -y \
-    && apt-get update && apt dist-upgrade -y 
+    && add-apt-repository cloud-archive:ocata -y \
+    && apt update && apt dist-upgrade -y 
 
 # Install OpenStack
 RUN set -x \
