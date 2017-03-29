@@ -1,6 +1,9 @@
 #!/bin/bash
 set -x
 
+# Stop apache2 server
+service apache2 stop
+
 # Check if init is done
 INIT_DONE=/etc/init_done
 if ! [ -f $INIT_DONE ]; then
@@ -29,9 +32,6 @@ OS_IDENTITY_API_VERSION=3
 MYSQL_BIN='/usr/bin/mysql'
 HOSTNAME=${HOSTNAME:-keystone}
 
-KEYSTONE_CONFIG_FILE=/etc/keystone/keystone.conf
-MEMCACHE_FILE=/etc/memcached.conf
-
 # Set rabbitmq-server
 service rabbitmq-server start
 sleep 3
@@ -43,7 +43,7 @@ echo "127.0.0.1 ${HOSTNAME}" >> /etc/hosts
 
 # Start mysql
 service mysql start
-sleep 5
+sleep 3
 
 # Create database
 $MYSQL_BIN --user=root --password="$ADMIN_PASSWORD" <<eof 
@@ -57,28 +57,16 @@ su -s /bin/sh -c "keystone-manage db_sync" keystone
 
 # Initialize fernet keys
 keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
 
 # Start keystone service 
 uwsgi --http 0.0.0.0:35357 --wsgi-file $(which keystone-wsgi-admin) &
 sleep 3
 
+# Bootstrap the Identity service
+keystone-manage bootstrap --bootstrap-password ${ADMIN_PASSWORD} --bootstrap-admin-url http://${HOSTNAME}:35357/v3/ --bootstrap-internal-url http://${HOSTNAME}:35357/v3/ --bootstrap-public-url http://${HOSTNAME}:5000/v3/ --bootstrap-region-id RegionOne
+
 # Initialize keystone
-export OS_TOKEN OS_URL OS_IDENTITY_API_VERSION
-
-openstack service create  --name keystone identity
-openstack endpoint create --region RegionOne identity public http://${HOSTNAME}:5000/v3
-openstack endpoint create --region RegionOne identity internal http://${HOSTNAME}:5000/v3
-openstack endpoint create --region RegionOne identity admin http://${HOSTNAME}:35357/v3
-openstack domain create --description "Default Domain" default
-openstack project create --domain default --description "Admin Project" admin
-openstack user create --domain default --password ${ADMIN_PASSWORD} admin
-openstack role create admin
-openstack role add --project admin --user admin admin
-openstack project create --domain default --description "Service Project" service
-openstack role create user
-
-unset OS_TOKEN OS_URL
-
 # Write openrc to disk
 cat >~/adminrc <<EOF
 export OS_PROJECT_DOMAIN_NAME=default
@@ -93,6 +81,9 @@ EOF
 
 cat ~/adminrc
 source ~/adminrc
+
+openstack project create --domain default --description "Service Project" service
+openstack role create user
 
 # reboot services
 pkill uwsgi

@@ -1,12 +1,12 @@
-FROM ubuntu:14.04.5
+FROM ubuntu:16.04
 MAINTAINER Joe "talihsu@gmail.com"
 
 # Install prerequisite
 RUN set -x \
     && apt-get -y update \
     && apt-get install nano software-properties-common python-pip python-dev -y \
-    && add-apt-repository cloud-archive:mitaka -y \
-    && apt-get update && apt-get dist-upgrade -y 
+    && add-apt-repository cloud-archive:newton -y \
+    && apt-get update && apt dist-upgrade -y 
 
 # Install OpenStack
 RUN set -x \
@@ -15,14 +15,14 @@ RUN set -x \
     && apt-get install mysql-server mysql-client -y \
     && apt-get install python-openstackclient rabbitmq-server memcached python-memcache python-mysqldb -y \
     && pip install uwsgi \
-    && echo "manual" > /etc/init/keystone.override \
     && apt-get install keystone libapache2-mod-wsgi -y \
     && apt-get clean && apt-get autoclean && apt-get autoremove \
     && rm -f /var/lib/keystone/keystone.db
 
 # Copy conf files
 COPY keystone.conf /etc/keystone/keystone.conf 
-COPY my.cnf /etc/mysql/my.cnf
+COPY keystone-paste.ini /etc/keystone/keystone-paste.ini
+COPY mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
 
 # Add bootstrap script and make it executable
 COPY bootstrap.sh /etc/bootstrap.sh
