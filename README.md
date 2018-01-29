@@ -1,5 +1,5 @@
 # keystone
-OpenStack Keystone (Mitaka)
+OpenStack Keystone (Newton)
 
 1. Build docker image with Dockerfile
 
